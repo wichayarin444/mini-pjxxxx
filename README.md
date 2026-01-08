@@ -1,4 +1,11 @@
 
+1.npm install 20.19.6 ก่อน 
+2.อัพไฟล์ข้นกิต
+git status
+git add .
+git commit -m "Initial commit"
+git push -u origin main
+
 
 
 
