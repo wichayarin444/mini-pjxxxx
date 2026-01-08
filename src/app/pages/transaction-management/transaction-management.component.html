@@ -1,0 +1,168 @@
+<div class="page">
+  <h2>Transaction History</h2>
+
+  <section class="search-section">
+    <h3>Search Criteria</h3>
+    <form [formGroup]="searchForm" class="search-form">
+      <div class="field">
+        <label>Fund Code</label>
+        <input type="text" formControlName="fundCode" placeholder="Search by code">
+      </div>
+      <div class="field">
+        <label>Transaction Type</label>
+        <select formControlName="type">
+          <option value="">All</option>
+          <option value="Buy">Buy</option>
+          <option value="Sell">Sell</option>
+        </select>
+      </div>
+      <div class="field date-range">
+        <label>Date Range</label>
+        <div class="range-inputs">
+          <input type="date" formControlName="startDate">
+          <span>-</span>
+          <input type="date" formControlName="endDate">
+        </div>
+      </div>
+      <div class="actions-search">
+        <button type="button" class="primary-btn search-btn" (click)="onSearch()">Search</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="list-section">
+    <div class="list-header">
+      <h3>Transaction List</h3>
+      <button class="primary-btn" (click)="openModal()">+ New Transaction</button>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Fund Code</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Units</th>
+            <th>NAV</th>
+            <th>Transaction Fee</th>
+            <th>Net</th>
+            <th>Timestamp</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of transactions()">
+            <td>{{ t.fundCode }}</td>
+            <td [class.buy]="t.type === 'Buy'" [class.sell]="t.type === 'Sell'">{{ t.type }}</td>
+            <td>{{ (t.amount || 0) | number: '1.2-2' }}</td>
+            <td>{{ (t.units || 0) | number: '1.4-4' }}</td>
+            <td>{{ t.nav | number: '1.4-4' }}</td>
+            <td>{{ t.fee | number: '1.2-2' }}</td>
+            <td>{{ t.net | number: '1.2-2' }}</td>
+            <td>{{ t.timestamp | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
+            <td class="actions">
+              <button class="icon-btn edit" (click)="openModal(t)" title="Edit">✏️</button>
+              <button class="icon-btn delete" (click)="remove(t.id)" title="Delete">🗑️</button>
+            </td>
+          </tr>
+          <tr *ngIf="transactions().length === 0">
+            <td colspan="9" class="empty">No transactions found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- Modal Overlay -->
+<div class="modal-overlay" *ngIf="showModal()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>New Transaction</h2>
+      <button class="close-btn" (click)="closeModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <form [formGroup]="addForm">
+        <!-- Row 1: Fund Code & Type -->
+        <div class="form-row">
+          <div class="field">
+            <label>Fund Code</label>
+            <select formControlName="fundCode">
+              <option value="">Select Fund</option>
+              <option *ngFor="let f of fundList()" [value]="f.fundCode">{{ f.fundCode }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Transaction Type</label>
+            <div class="radio-group">
+              <label>
+                <input type="radio" formControlName="type" value="Buy"> Buy
+              </label>
+              <label>
+                <input type="radio" formControlName="type" value="Sell"> Sell
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Inputs -->
+        <div class="form-row">
+          <!-- Buy Mode: Input Amount -->
+          <ng-container *ngIf="addForm.value.type === 'Buy'">
+            <div class="field">
+              <label>Amount</label>
+              <input type="number" formControlName="amount" placeholder="0.00">
+            </div>
+            <div class="field read-only">
+              <label>Units (Calculated)</label>
+              <input type="text" [value]="calculations.units | number:'1.4-4'" disabled>
+            </div>
+            <div class="field read-only">
+              <label>Net (Calculated)</label>
+              <input type="text" [value]="calculations.net | number:'1.2-2'" disabled>
+            </div>
+          </ng-container>
+
+          <!-- Sell Mode: Input Units -->
+          <ng-container *ngIf="addForm.value.type === 'Sell'">
+            <div class="field read-only">
+              <label>Amount (Gross)</label>
+              <input type="text" [value]="calculations.amount | number:'1.2-2'" disabled>
+            </div>
+            <div class="field">
+              <label>Units</label>
+              <input type="number" formControlName="units" placeholder="0.0000">
+            </div>
+            <div class="field read-only">
+              <label>Net (Calculated)</label>
+              <input type="text" [value]="calculations.net | number:'1.2-2'" disabled>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Row 3: NAV & Fee -->
+        <div class="form-row">
+          <div class="field read-only">
+            <label>Current NAV</label>
+            <input type="text" [value]="calculations.nav | number:'1.4-4'" disabled>
+          </div>
+          <div class="field read-only">
+            <label>Transaction Fee</label>
+            <input type="text" [value]="calculations.fee | number:'1.2-2'" disabled>
+          </div>
+        </div>
+
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button class="secondary-btn" (click)="closeModal()">Cancel</button>
+      <button class="primary-btn" (click)="save()"
+        [disabled]="addForm.invalid || (addForm.value.type === 'Buy' && calculations.amount <= 0) || (addForm.value.type === 'Sell' && calculations.units <= 0)">
+        Save Transaction
+      </button>
+    </div>
+  </div>
+</div>

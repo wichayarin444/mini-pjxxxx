@@ -1,0 +1,21 @@
+nav.top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #ddd;
+  background: #fafafa;
+}
+nav.top a {
+  text-decoration: none;
+  color: #007bff;
+}
+nav.top a.active {
+  font-weight: 600;
+}
+nav.top .spacer {
+  flex: 1;
+}
+main {
+  padding: 16px;
+}
