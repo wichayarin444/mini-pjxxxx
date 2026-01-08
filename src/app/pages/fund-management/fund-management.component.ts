@@ -3,11 +3,34 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { FundService } from '../../services/fund.service';
 import { Fund } from '../../models/fund.model';
+import {
+  DxDataGridModule,
+  DxButtonModule,
+  DxSelectBoxModule,
+  DxTextBoxModule,
+  DxDateBoxModule,
+  DxPopupModule,
+  DxFormModule,
+  DxNumberBoxModule,
+  DxValidatorModule
+} from 'devextreme-angular';
 
 @Component({
   selector: 'app-fund-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    DxDataGridModule,
+    DxButtonModule,
+    DxSelectBoxModule,
+    DxTextBoxModule,
+    DxDateBoxModule,
+    DxPopupModule,
+    DxFormModule,
+    DxNumberBoxModule,
+    DxValidatorModule
+  ],
   templateUrl: './fund-management.component.html',
   styleUrls: ['./fund-management.component.scss']
 })

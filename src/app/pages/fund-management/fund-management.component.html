@@ -2,113 +2,106 @@
   <h2>Fund Management</h2>
 
   <!-- Search Criteria -->
-  <section class="search-section">
+  <section class="search-section dx-card content-block">
     <h3>Search Criteria</h3>
-    <form [formGroup]="searchForm" class="search-form">
-      <div class="field">
+    <form [formGroup]="searchForm" class="search-container">
+      <div class="search-item">
         <label>Fund Code</label>
-        <input type="text" formControlName="fundCode" placeholder="Fund Code">
+        <dx-text-box formControlName="fundCode" placeholder="Fund Code"></dx-text-box>
       </div>
-      <div class="field">
+      <div class="search-item">
         <label>AIMC Category</label>
-        <select formControlName="aimcCategory">
-          <option value="">All Categories</option>
-          <option *ngFor="let c of aimcCategories" [value]="c">{{ c }}</option>
-        </select>
+        <dx-select-box formControlName="aimcCategory" [items]="aimcCategories" placeholder="Select..." [showClearButton]="true"></dx-select-box>
       </div>
-      <div class="field date-range">
+      <div class="search-item date-range">
         <label>IPO Date Range</label>
         <div class="range-inputs">
-          <input type="date" formControlName="ipoFrom">
-          <span>-</span>
-          <input type="date" formControlName="ipoTo">
+          <dx-date-box formControlName="ipoFrom" type="date" displayFormat="yyyy-MM-dd" placeholder="Start Date"></dx-date-box>
+          <span class="separator">-</span>
+          <dx-date-box formControlName="ipoTo" type="date" displayFormat="yyyy-MM-dd" placeholder="End Date"></dx-date-box>
         </div>
       </div>
-      <div class="actions-search">
-        <button type="button" class="primary-btn search-btn" (click)="onSearch()">Search</button>
-      </div>
     </form>
+    <div class="actions-search">
+      <dx-button text="Search" type="default" stylingMode="contained" (onClick)="onSearch()"></dx-button>
+    </div>
   </section>
 
   <!-- Fund List -->
-  <section class="list-section">
+  <section class="list-section dx-card content-block">
     <h3>Fund List</h3>
     <div class="table-actions">
-      <button class="primary-btn add-btn" (click)="startAdd()">+ Add New Fund</button>
+      <dx-button text="+ Add New Fund" type="default" stylingMode="contained" (onClick)="startAdd()"></dx-button>
     </div>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Fund Code ↕</th>
-            <th>NAV ↕</th>
-            <th>AIMC Category</th>
-            <th>IPO Date ↕</th>
-            <th>Front-end Fee (%)</th>
-            <th>Back-end Fee (%)</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let f of list()">
-            <td>{{ f.fundCode }}</td>
-            <td>{{ f.nav | number: '1.4-4' }}</td>
-            <td>{{ f.aimcCategory }}</td>
-            <td>{{ f.ipoDate }}</td>
-            <td>{{ f.frontEndFee | number: '1.2-2' }}</td>
-            <td>{{ f.backEndFee | number: '1.2-2' }}</td>
-            <td class="actions-cell">
-              <button class="icon-btn edit" (click)="startEdit(f)" title="Edit">✏️</button>
-              <button class="icon-btn delete" (click)="remove(f.fundCode)" title="Delete">🗑️</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <dx-data-grid 
+      [dataSource]="list()" 
+      [showBorders]="true" 
+      [columnAutoWidth]="true"
+      [rowAlternationEnabled]="true">
+      <dxo-paging [pageSize]="10"></dxo-paging>
+      <dxo-pager [showPageSizeSelector]="true" [allowedPageSizes]="[10, 20, 50]" [showInfo]="true"></dxo-pager>
+
+      <dxi-column dataField="fundCode" caption="Fund Code"></dxi-column>
+      <dxi-column dataField="nav" caption="NAV" format="#,##0.0000"></dxi-column>
+      <dxi-column dataField="aimcCategory" caption="AIMC Category"></dxi-column>
+      <dxi-column dataField="ipoDate" caption="IPO Date" dataType="date" format="yyyy-MM-dd"></dxi-column>
+      <dxi-column dataField="frontEndFee" caption="Front-end Fee (%)" format="#,##0.00"></dxi-column>
+      <dxi-column dataField="backEndFee" caption="Back-end Fee (%)" format="#,##0.00"></dxi-column>
+      <dxi-column caption="Actions" cellTemplate="actionsCell" [width]="100" alignment="center"></dxi-column>
+
+      <div *dxTemplate="let d of 'actionsCell'">
+        <div class="action-buttons">
+          <dx-button icon="edit" stylingMode="text" (onClick)="startEdit(d.data)"></dx-button>
+          <dx-button icon="trash" stylingMode="text" type="danger" (onClick)="remove(d.data.fundCode)"></dx-button>
+        </div>
+      </div>
+    </dx-data-grid>
   </section>
 
   <!-- Add/Edit Modal -->
-  <div class="modal-overlay" *ngIf="showModal()">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>{{ editMode() === 'add' ? 'Add Fund' : 'Edit Fund' }}</h2>
-        <button class="close-btn" (click)="closeModal()">×</button>
-      </div>
-      <div class="modal-body">
-        <form [formGroup]="form">
-          <div class="field">
-            <label>Fund Code</label>
-            <input type="text" formControlName="fundCode" placeholder="Fund Code">
-          </div>
-          <div class="field">
-            <label>NAV</label>
-            <input type="number" step="0.0001" formControlName="nav" placeholder="0.0000 decimal places">
-          </div>
-          <div class="field">
-            <label>AIMC Category</label>
-            <select formControlName="aimcCategory">
-              <option *ngFor="let c of aimcCategories" [value]="c">{{ c }}</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>IPO Date</label>
-            <input type="date" formControlName="ipoDate">
-          </div>
-          <div class="field">
-            <label>Front-end Fee (%)</label>
-            <input type="number" step="0.01" formControlName="frontEndFee" placeholder="0.00">
-          </div>
-          <div class="field">
-            <label>Back-end Fee (%)</label>
-            <input type="number" step="0.01" formControlName="backEndFee" placeholder="0.00">
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button class="secondary-btn" (click)="cancelEdit()">Cancel</button>
-        <button class="primary-btn save-btn" (click)="save()" [disabled]="form.invalid">Save Fund</button>
-      </div>
+  <dx-popup
+    [visible]="showModal()"
+    [title]="'Add/Edit Fund'"
+    [showTitle]="true"
+    [dragEnabled]="false"
+    [hideOnOutsideClick]="true"
+    [width]="600"
+    [height]="'auto'"
+    (onHiding)="closeModal()">
+    
+    <div *dxTemplate="let data of 'content'">
+      <form [formGroup]="form" class="popup-form">
+        <div class="field">
+          <label>Fund Code</label>
+          <dx-text-box formControlName="fundCode" placeholder="Fund Code"></dx-text-box>
+        </div>
+        <div class="field">
+          <label>NAV</label>
+          <dx-number-box formControlName="nav" format="#,##0.0000" [min]="0" [showSpinButtons]="true"></dx-number-box>
+        </div>
+        <div class="field">
+          <label>AIMC Category</label>
+          <dx-select-box formControlName="aimcCategory" [items]="aimcCategories" placeholder="Select..."></dx-select-box>
+        </div>
+        <div class="field">
+          <label>IPO Date</label>
+          <dx-date-box formControlName="ipoDate" type="date" displayFormat="yyyy-MM-dd"></dx-date-box>
+        </div>
+        <div class="field">
+          <label>Front-end Fee (%)</label>
+          <dx-number-box formControlName="frontEndFee" format="#,##0.00" [min]="0" [showSpinButtons]="true"></dx-number-box>
+        </div>
+        <div class="field">
+          <label>Back-end Fee (%)</label>
+          <dx-number-box formControlName="backEndFee" format="#,##0.00" [min]="0" [showSpinButtons]="true"></dx-number-box>
+        </div>
+
+        <div class="popup-footer">
+          <dx-button text="Cancel" stylingMode="outlined" (onClick)="cancelEdit()"></dx-button>
+          <dx-button text="Save Fund" type="success" stylingMode="contained" (onClick)="save()" [disabled]="form.invalid"></dx-button>
+        </div>
+      </form>
     </div>
-  </div>
+  </dx-popup>
 </div>

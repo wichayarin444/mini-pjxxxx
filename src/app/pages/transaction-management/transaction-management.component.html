@@ -1,168 +1,140 @@
 <div class="page">
   <h2>Transaction History</h2>
 
-  <section class="search-section">
+  <section class="search-section dx-card content-block">
     <h3>Search Criteria</h3>
-    <form [formGroup]="searchForm" class="search-form">
-      <div class="field">
+    <form [formGroup]="searchForm" class="search-container">
+      <div class="search-item">
         <label>Fund Code</label>
-        <input type="text" formControlName="fundCode" placeholder="Search by code">
+        <dx-text-box formControlName="fundCode" placeholder="Search by code"></dx-text-box>
       </div>
-      <div class="field">
+      <div class="search-item">
         <label>Transaction Type</label>
-        <select formControlName="type">
-          <option value="">All</option>
-          <option value="Buy">Buy</option>
-          <option value="Sell">Sell</option>
-        </select>
+        <dx-select-box formControlName="type" [items]="['Buy', 'Sell']" placeholder="All" [showClearButton]="true"></dx-select-box>
       </div>
-      <div class="field date-range">
+      <div class="search-item date-range">
         <label>Date Range</label>
         <div class="range-inputs">
-          <input type="date" formControlName="startDate">
-          <span>-</span>
-          <input type="date" formControlName="endDate">
+          <dx-date-box formControlName="startDate" type="date" displayFormat="yyyy-MM-dd" placeholder="Start"></dx-date-box>
+          <span class="separator">-</span>
+          <dx-date-box formControlName="endDate" type="date" displayFormat="yyyy-MM-dd" placeholder="End"></dx-date-box>
         </div>
-      </div>
-      <div class="actions-search">
-        <button type="button" class="primary-btn search-btn" (click)="onSearch()">Search</button>
       </div>
     </form>
-  </section>
-
-  <section class="list-section">
-    <div class="list-header">
-      <h3>Transaction List</h3>
-      <button class="primary-btn" (click)="openModal()">+ New Transaction</button>
-    </div>
-
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Fund Code</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Units</th>
-            <th>NAV</th>
-            <th>Transaction Fee</th>
-            <th>Net</th>
-            <th>Timestamp</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let t of transactions()">
-            <td>{{ t.fundCode }}</td>
-            <td [class.buy]="t.type === 'Buy'" [class.sell]="t.type === 'Sell'">{{ t.type }}</td>
-            <td>{{ (t.amount || 0) | number: '1.2-2' }}</td>
-            <td>{{ (t.units || 0) | number: '1.4-4' }}</td>
-            <td>{{ t.nav | number: '1.4-4' }}</td>
-            <td>{{ t.fee | number: '1.2-2' }}</td>
-            <td>{{ t.net | number: '1.2-2' }}</td>
-            <td>{{ t.timestamp | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
-            <td class="actions">
-              <button class="icon-btn edit" (click)="openModal(t)" title="Edit">✏️</button>
-              <button class="icon-btn delete" (click)="remove(t.id)" title="Delete">🗑️</button>
-            </td>
-          </tr>
-          <tr *ngIf="transactions().length === 0">
-            <td colspan="9" class="empty">No transactions found.</td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="actions-search">
+      <dx-button text="Search" type="default" stylingMode="contained" (onClick)="onSearch()"></dx-button>
     </div>
   </section>
-</div>
 
-<!-- Modal Overlay -->
-<div class="modal-overlay" *ngIf="showModal()">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>New Transaction</h2>
-      <button class="close-btn" (click)="closeModal()">×</button>
+  <section class="list-section dx-card content-block">
+    <h3>Transaction List</h3>
+    <div class="list-actions">
+      <dx-button text="+ New Transaction" type="default" stylingMode="contained" (onClick)="openModal()"></dx-button>
     </div>
+    
+    <dx-data-grid 
+      [dataSource]="transactions()" 
+      [showBorders]="true" 
+      [columnAutoWidth]="true"
+      [rowAlternationEnabled]="true">
+      <dxo-paging [pageSize]="10"></dxo-paging>
+      <dxo-pager [showPageSizeSelector]="true" [allowedPageSizes]="[10, 20, 50]" [showInfo]="true"></dxo-pager>
 
-    <div class="modal-body">
-      <form [formGroup]="addForm">
-        <!-- Row 1: Fund Code & Type -->
-        <div class="form-row">
-          <div class="field">
-            <label>Fund Code</label>
-            <select formControlName="fundCode">
-              <option value="">Select Fund</option>
-              <option *ngFor="let f of fundList()" [value]="f.fundCode">{{ f.fundCode }}</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Transaction Type</label>
-            <div class="radio-group">
-              <label>
-                <input type="radio" formControlName="type" value="Buy"> Buy
-              </label>
-              <label>
-                <input type="radio" formControlName="type" value="Sell"> Sell
-              </label>
-            </div>
-          </div>
+      <dxi-column dataField="fundCode" caption="Fund Code"></dxi-column>
+      <dxi-column dataField="type" caption="Type" cellTemplate="typeCell"></dxi-column>
+      <dxi-column dataField="amount" caption="Amount" format="#,##0.00"></dxi-column>
+      <dxi-column dataField="units" caption="Units" format="#,##0.0000"></dxi-column>
+      <dxi-column dataField="nav" caption="NAV" format="#,##0.0000"></dxi-column>
+      <dxi-column dataField="fee" caption="Transaction Fee" format="#,##0.00"></dxi-column>
+      <dxi-column dataField="net" caption="Net" format="#,##0.00"></dxi-column>
+      <dxi-column dataField="timestamp" caption="Timestamp" dataType="datetime" format="yyyy-MM-dd HH:mm:ss"></dxi-column>
+      <dxi-column caption="Actions" cellTemplate="actionsCell" [width]="100" alignment="center"></dxi-column>
+
+      <div *dxTemplate="let d of 'typeCell'">
+        <span [class.buy]="d.value === 'Buy'" [class.sell]="d.value === 'Sell'">{{ d.value }}</span>
+      </div>
+
+      <div *dxTemplate="let d of 'actionsCell'">
+        <div class="action-buttons">
+          <dx-button icon="edit" stylingMode="text" (onClick)="openModal(d.data)"></dx-button>
+          <dx-button icon="trash" stylingMode="text" type="danger" (onClick)="remove(d.data.id)"></dx-button>
         </div>
+      </div>
+    </dx-data-grid>
+  </section>
 
-        <!-- Row 2: Inputs -->
+  <!-- Modal -->
+  <dx-popup
+    [visible]="showModal()"
+    [title]="'New Transaction'"
+    [showTitle]="true"
+    [dragEnabled]="false"
+    [hideOnOutsideClick]="true"
+    [width]="700"
+    [height]="'auto'"
+    (onHiding)="closeModal()">
+    
+    <div *dxTemplate="let data of 'content'">
+      <form [formGroup]="addForm" class="popup-form">
         <div class="form-row">
-          <!-- Buy Mode: Input Amount -->
-          <ng-container *ngIf="addForm.value.type === 'Buy'">
             <div class="field">
-              <label>Amount</label>
-              <input type="number" formControlName="amount" placeholder="0.00">
-            </div>
-            <div class="field read-only">
-              <label>Units (Calculated)</label>
-              <input type="text" [value]="calculations.units | number:'1.4-4'" disabled>
-            </div>
-            <div class="field read-only">
-              <label>Net (Calculated)</label>
-              <input type="text" [value]="calculations.net | number:'1.2-2'" disabled>
-            </div>
-          </ng-container>
-
-          <!-- Sell Mode: Input Units -->
-          <ng-container *ngIf="addForm.value.type === 'Sell'">
-            <div class="field read-only">
-              <label>Amount (Gross)</label>
-              <input type="text" [value]="calculations.amount | number:'1.2-2'" disabled>
+                <label>Fund Code</label>
+                <dx-select-box formControlName="fundCode" [items]="fundList()" displayExpr="fundCode" valueExpr="fundCode" placeholder="Select Fund"></dx-select-box>
             </div>
             <div class="field">
-              <label>Units</label>
-              <input type="number" formControlName="units" placeholder="0.0000">
+                <label>Transaction Type</label>
+                <dx-radio-group formControlName="type" [items]="['Buy', 'Sell']" layout="horizontal"></dx-radio-group>
             </div>
-            <div class="field read-only">
-              <label>Net (Calculated)</label>
-              <input type="text" [value]="calculations.net | number:'1.2-2'" disabled>
-            </div>
-          </ng-container>
         </div>
 
-        <!-- Row 3: NAV & Fee -->
+        <div class="form-row" *ngIf="addForm.value.type === 'Buy'">
+            <div class="field">
+                <label>Amount</label>
+                <dx-number-box formControlName="amount" format="#,##0.00" [min]="0"></dx-number-box>
+            </div>
+            <div class="field">
+                <label>Units (Calculated)</label>
+                <dx-number-box [value]="calculations.units" format="#,##0.0000" [readOnly]="true"></dx-number-box>
+            </div>
+            <div class="field">
+                <label>Net (Calculated)</label>
+                <dx-number-box [value]="calculations.net" format="#,##0.00" [readOnly]="true"></dx-number-box>
+            </div>
+        </div>
+
+        <div class="form-row" *ngIf="addForm.value.type === 'Sell'">
+            <div class="field">
+                 <label>Amount (Gross)</label>
+                 <dx-number-box [value]="calculations.amount" format="#,##0.00" [readOnly]="true"></dx-number-box>
+            </div>
+            <div class="field">
+                 <label>Units</label>
+                 <dx-number-box formControlName="units" format="#,##0.0000" [min]="0"></dx-number-box>
+            </div>
+            <div class="field">
+                 <label>Net (Calculated)</label>
+                 <dx-number-box [value]="calculations.net" format="#,##0.00" [readOnly]="true"></dx-number-box>
+            </div>
+        </div>
+
         <div class="form-row">
-          <div class="field read-only">
-            <label>Current NAV</label>
-            <input type="text" [value]="calculations.nav | number:'1.4-4'" disabled>
-          </div>
-          <div class="field read-only">
-            <label>Transaction Fee</label>
-            <input type="text" [value]="calculations.fee | number:'1.2-2'" disabled>
-          </div>
+            <div class="field">
+                <label>Current NAV</label>
+                <dx-number-box [value]="calculations.nav" format="#,##0.0000" [readOnly]="true"></dx-number-box>
+            </div>
+            <div class="field">
+                <label>Transaction Fee</label>
+                <dx-number-box [value]="calculations.fee" format="#,##0.00" [readOnly]="true"></dx-number-box>
+            </div>
         </div>
 
+        <div class="popup-footer">
+          <dx-button text="Cancel" stylingMode="outlined" (onClick)="closeModal()"></dx-button>
+          <dx-button text="Save Transaction" type="success" stylingMode="contained" (onClick)="save()" 
+            [disabled]="addForm.invalid || (addForm.value.type === 'Buy' && calculations.amount <= 0) || (addForm.value.type === 'Sell' && calculations.units <= 0)">
+          </dx-button>
+        </div>
       </form>
     </div>
-
-    <div class="modal-footer">
-      <button class="secondary-btn" (click)="closeModal()">Cancel</button>
-      <button class="primary-btn" (click)="save()"
-        [disabled]="addForm.invalid || (addForm.value.type === 'Buy' && calculations.amount <= 0) || (addForm.value.type === 'Sell' && calculations.units <= 0)">
-        Save Transaction
-      </button>
-    </div>
-  </div>
+  </dx-popup>
 </div>

@@ -4,11 +4,36 @@ import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angula
 import { FundService } from '../../services/fund.service';
 import { TransactionService } from '../../services/transaction.service';
 import { TransactionType } from '../../models/transaction.model';
+import {
+  DxDataGridModule,
+  DxButtonModule,
+  DxSelectBoxModule,
+  DxTextBoxModule,
+  DxDateBoxModule,
+  DxPopupModule,
+  DxFormModule,
+  DxNumberBoxModule,
+  DxRadioGroupModule,
+  DxValidatorModule
+} from 'devextreme-angular';
 
 @Component({
   selector: 'app-transaction-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    DxDataGridModule,
+    DxButtonModule,
+    DxSelectBoxModule,
+    DxTextBoxModule,
+    DxDateBoxModule,
+    DxPopupModule,
+    DxFormModule,
+    DxNumberBoxModule,
+    DxRadioGroupModule,
+    DxValidatorModule
+  ],
   templateUrl: './transaction-management.component.html',
   styleUrls: ['./transaction-management.component.scss']
 })
