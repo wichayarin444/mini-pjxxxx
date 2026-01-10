@@ -1,5 +1,5 @@
-import { Component, computed, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, signal, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { FundService } from '../../services/fund.service';
 import { Fund } from '../../models/fund.model';
@@ -47,8 +47,15 @@ export class FundManagementComponent {
 
   searchForm!: FormGroup;
   form!: FormGroup;
+  isBrowser = signal(false);
 
-  constructor(private funds: FundService, private fb: FormBuilder) {
+  constructor(
+    private funds: FundService,
+    private fb: FormBuilder,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    this.isBrowser.set(isPlatformBrowser(this.platformId));
+
     this.searchForm = this.fb.group({
       fundCode: [''],
       aimcCategory: [''],

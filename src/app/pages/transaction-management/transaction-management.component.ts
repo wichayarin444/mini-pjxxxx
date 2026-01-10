@@ -1,5 +1,5 @@
-import { Component, computed, signal, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, signal, effect, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { FundService } from '../../services/fund.service';
 import { TransactionService } from '../../services/transaction.service';
@@ -42,6 +42,7 @@ export class TransactionManagementComponent {
   addForm!: FormGroup;
   showModal = signal(false);
   editingId = signal<string | null>(null);
+  isBrowser = signal(false);
 
   searchCriteria = signal({
     fundCode: '',
@@ -53,8 +54,11 @@ export class TransactionManagementComponent {
   constructor(
     private funds: FundService,
     private tx: TransactionService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {
+    this.isBrowser.set(isPlatformBrowser(this.platformId));
+
     this.searchForm = this.fb.group({
       fundCode: [''],
       type: [''],

@@ -65,6 +65,7 @@
 
   <!-- Modal -->
   <dx-popup
+    *ngIf="isBrowser()"
     [visible]="showModal()"
     [title]="'New Transaction'"
     [showTitle]="true"

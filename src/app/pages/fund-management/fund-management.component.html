@@ -11,14 +11,17 @@
       </div>
       <div class="search-item">
         <label>AIMC Category</label>
-        <dx-select-box formControlName="aimcCategory" [items]="aimcCategories" placeholder="Select..." [showClearButton]="true"></dx-select-box>
+        <dx-select-box formControlName="aimcCategory" [items]="aimcCategories" placeholder="Select..."
+          [showClearButton]="true"></dx-select-box>
       </div>
       <div class="search-item date-range">
         <label>IPO Date Range</label>
         <div class="range-inputs">
-          <dx-date-box formControlName="ipoFrom" type="date" displayFormat="yyyy-MM-dd" placeholder="Start Date"></dx-date-box>
+          <dx-date-box formControlName="ipoFrom" type="date" displayFormat="yyyy-MM-dd"
+            placeholder="Start Date"></dx-date-box>
           <span class="separator">-</span>
-          <dx-date-box formControlName="ipoTo" type="date" displayFormat="yyyy-MM-dd" placeholder="End Date"></dx-date-box>
+          <dx-date-box formControlName="ipoTo" type="date" displayFormat="yyyy-MM-dd"
+            placeholder="End Date"></dx-date-box>
         </div>
       </div>
     </form>
@@ -34,11 +37,7 @@
       <dx-button text="+ Add New Fund" type="default" stylingMode="contained" (onClick)="startAdd()"></dx-button>
     </div>
 
-    <dx-data-grid 
-      [dataSource]="list()" 
-      [showBorders]="true" 
-      [columnAutoWidth]="true"
-      [rowAlternationEnabled]="true">
+    <dx-data-grid [dataSource]="list()" [showBorders]="true" [columnAutoWidth]="true" [rowAlternationEnabled]="true">
       <dxo-paging [pageSize]="10"></dxo-paging>
       <dxo-pager [showPageSizeSelector]="true" [allowedPageSizes]="[10, 20, 50]" [showInfo]="true"></dxo-pager>
 
@@ -60,16 +59,9 @@
   </section>
 
   <!-- Add/Edit Modal -->
-  <dx-popup
-    [visible]="showModal()"
-    [title]="'Add/Edit Fund'"
-    [showTitle]="true"
-    [dragEnabled]="false"
-    [hideOnOutsideClick]="true"
-    [width]="600"
-    [height]="'auto'"
-    (onHiding)="closeModal()">
-    
+  <dx-popup *ngIf="isBrowser()" [visible]="showModal()" [title]="'Add/Edit Fund'" [showTitle]="true"
+    [dragEnabled]="false" [hideOnOutsideClick]="true" [width]="600" [height]="'auto'" (onHiding)="closeModal()">
+
     <div *dxTemplate="let data of 'content'">
       <form [formGroup]="form" class="popup-form">
         <div class="field">
@@ -82,7 +74,8 @@
         </div>
         <div class="field">
           <label>AIMC Category</label>
-          <dx-select-box formControlName="aimcCategory" [items]="aimcCategories" placeholder="Select..."></dx-select-box>
+          <dx-select-box formControlName="aimcCategory" [items]="aimcCategories"
+            placeholder="Select..."></dx-select-box>
         </div>
         <div class="field">
           <label>IPO Date</label>
@@ -90,16 +83,19 @@
         </div>
         <div class="field">
           <label>Front-end Fee (%)</label>
-          <dx-number-box formControlName="frontEndFee" format="#,##0.00" [min]="0" [showSpinButtons]="true"></dx-number-box>
+          <dx-number-box formControlName="frontEndFee" format="#,##0.00" [min]="0"
+            [showSpinButtons]="true"></dx-number-box>
         </div>
         <div class="field">
           <label>Back-end Fee (%)</label>
-          <dx-number-box formControlName="backEndFee" format="#,##0.00" [min]="0" [showSpinButtons]="true"></dx-number-box>
+          <dx-number-box formControlName="backEndFee" format="#,##0.00" [min]="0"
+            [showSpinButtons]="true"></dx-number-box>
         </div>
 
         <div class="popup-footer">
           <dx-button text="Cancel" stylingMode="outlined" (onClick)="cancelEdit()"></dx-button>
-          <dx-button text="Save Fund" type="success" stylingMode="contained" (onClick)="save()" [disabled]="form.invalid"></dx-button>
+          <dx-button text="Save Fund" type="success" stylingMode="contained" (onClick)="save()"
+            [disabled]="form.invalid"></dx-button>
         </div>
       </form>
     </div>
