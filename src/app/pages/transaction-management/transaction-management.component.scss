@@ -2,28 +2,19 @@
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 
-  h2 {
-    margin: 0 0 20px;
-    font-size: 24px;
-    font-weight: 600;
+  h2,
+  h3 {
+    margin: 0 0 15px;
   }
 }
 
 .search-section,
 .list-section {
   background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 25px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-
-  h3 {
-    margin: 0 0 15px;
-    font-size: 18px;
-    font-weight: 600;
-    color: #333;
-  }
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 20px;
 }
 
 /* Search Form */
@@ -43,7 +34,7 @@
 
     label {
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 500;
       color: #333;
     }
 
@@ -56,11 +47,11 @@
         gap: 10px;
 
         dx-date-box {
-          flex: 1;
+            flex: 1;
         }
 
         .separator {
-          color: #666;
+            color: #666;
         }
       }
     }
@@ -68,11 +59,13 @@
 }
 
 .actions-search {
-  /* Optional alignment */
+    /* Optional alignment */
 }
 
 /* List Actions */
-.table-actions {
+.list-actions {
+  display: flex;
+  justify-content: flex-start;
   margin-bottom: 15px;
 }
 
