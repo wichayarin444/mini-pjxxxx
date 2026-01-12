@@ -37,7 +37,7 @@
       <dx-button text="+ Add New Fund" type="default" stylingMode="contained" (onClick)="startAdd()"></dx-button>
     </div>
 
-    <dx-data-grid [dataSource]="list()" [showBorders]="true" [columnAutoWidth]="true" [rowAlternationEnabled]="true">
+    <dx-data-grid [dataSource]="list$ | async" [showBorders]="true" [columnAutoWidth]="true" [rowAlternationEnabled]="true">
       <dxo-paging [pageSize]="10"></dxo-paging>
       <dxo-pager [showPageSizeSelector]="true" [allowedPageSizes]="[10, 20, 50]" [showInfo]="true"></dxo-pager>
 
@@ -59,7 +59,7 @@
   </section>
 
   <!-- Add/Edit Modal -->
-  <dx-popup *ngIf="isBrowser()" [visible]="showModal()" [title]="'Add/Edit Fund'" [showTitle]="true"
+  <dx-popup *ngIf="isBrowser$ | async" [visible]="(showModal$ | async)!" [title]="'Add/Edit Fund'" [showTitle]="true"
     [dragEnabled]="false" [hideOnOutsideClick]="true" [width]="600" [height]="'auto'" (onHiding)="closeModal()">
 
     <div *dxTemplate="let data of 'content'">

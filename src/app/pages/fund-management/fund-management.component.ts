@@ -1,8 +1,9 @@
-import { Component, computed, signal, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { FundService } from '../../services/fund.service';
 import { Fund } from '../../models/fund.model';
+import { BehaviorSubject, combineLatest, map, Observable } from 'rxjs';
 import {
   DxDataGridModule,
   DxButtonModule,
@@ -36,9 +37,9 @@ import {
 })
 export class FundManagementComponent {
   aimcCategories = ['Money Market', 'Equity Large Cap', 'Equity Small Cap', 'Fixed Income', 'Mixed Fund'];
-  showModal = signal(false);
-  editMode = signal<'add' | 'edit' | null>(null);
-  searchCriteria = signal({
+  showModal$ = new BehaviorSubject<boolean>(false);
+  editMode$ = new BehaviorSubject<'add' | 'edit' | null>(null);
+  searchCriteria$ = new BehaviorSubject({
     fundCode: '',
     aimcCategory: '',
     ipoFrom: '',
@@ -47,14 +48,16 @@ export class FundManagementComponent {
 
   searchForm!: FormGroup;
   form!: FormGroup;
-  isBrowser = signal(false);
+  isBrowser$ = new BehaviorSubject<boolean>(false);
+
+  readonly list$: Observable<Fund[]>;
 
   constructor(
     private funds: FundService,
     private fb: FormBuilder,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
-    this.isBrowser.set(isPlatformBrowser(this.platformId));
+    this.isBrowser$.next(isPlatformBrowser(this.platformId));
 
     this.searchForm = this.fb.group({
       fundCode: [''],
@@ -70,29 +73,32 @@ export class FundManagementComponent {
       frontEndFee: [0, [Validators.required, Validators.min(0)]],
       backEndFee: [0, [Validators.required, Validators.min(0)]]
     });
+
+    this.list$ = combineLatest([
+      this.funds.funds$,
+      this.searchCriteria$
+    ]).pipe(
+      map(([base, s]) => {
+        return base.filter(f => {
+          const byCode = s.fundCode ? f.fundCode.toLowerCase().includes(s.fundCode.toLowerCase()) : true;
+          const byCat = s.aimcCategory
+            ? f.aimcCategory.toLowerCase().includes(s.aimcCategory.toLowerCase())
+            : true;
+          const byFrom = s.ipoFrom ? new Date(f.ipoDate) >= new Date(s.ipoFrom) : true;
+          const byTo = s.ipoTo ? new Date(f.ipoDate) <= new Date(s.ipoTo) : true;
+          return byCode && byCat && byFrom && byTo;
+        });
+      })
+    );
   }
 
-  readonly list = computed(() => {
-    const base = this.funds.funds();
-    const s = this.searchCriteria();
-    return base.filter(f => {
-      const byCode = s.fundCode ? f.fundCode.toLowerCase().includes(s.fundCode.toLowerCase()) : true;
-      const byCat = s.aimcCategory
-        ? f.aimcCategory.toLowerCase().includes(s.aimcCategory.toLowerCase())
-        : true;
-      const byFrom = s.ipoFrom ? new Date(f.ipoDate) >= new Date(s.ipoFrom) : true;
-      const byTo = s.ipoTo ? new Date(f.ipoDate) <= new Date(s.ipoTo) : true;
-      return byCode && byCat && byFrom && byTo;
-    });
-  });
-
   onSearch(): void {
-    this.searchCriteria.set(this.searchForm.value);
+    this.searchCriteria$.next(this.searchForm.value);
   }
 
   startAdd(): void {
-    this.editMode.set('add');
-    this.showModal.set(true);
+    this.editMode$.next('add');
+    this.showModal$.next(true);
     this.form.reset({
       fundCode: '',
       nav: 0,
@@ -104,25 +110,26 @@ export class FundManagementComponent {
     this.form.get('fundCode')?.enable();
   }
 
-  startEdit(item: Fund): void {
-    this.editMode.set('edit');
-    this.showModal.set(true);
-    this.form.reset(item);
-    this.form.get('fundCode')?.disable();
+  startEdit(fund: Fund): void {
+    this.editMode$.next('edit');
+    this.showModal$.next(true);
+    this.form.patchValue(fund);
+    this.form.get('fundCode')?.disable(); // Primary key cannot change
   }
 
   closeModal(): void {
-    this.editMode.set(null);
-    this.showModal.set(false);
+    this.showModal$.next(false);
+    this.editMode$.next(null);
+  }
+
+  cancelEdit(): void {
+    this.closeModal();
   }
 
   save(): void {
     if (this.form.invalid) return;
-    const value = this.form.getRawValue() as Fund;
-    value.nav = Number(value.nav);
-    value.frontEndFee = Number(value.frontEndFee);
-    value.backEndFee = Number(value.backEndFee);
-    this.funds.upsert(value);
+    const data = this.form.getRawValue(); // include disabled fields
+    this.funds.upsert(data);
     this.closeModal();
   }
 
@@ -130,9 +137,5 @@ export class FundManagementComponent {
     if (confirm('Are you sure you want to delete this fund?')) {
       this.funds.delete(fundCode);
     }
-  }
-
-  cancelEdit(): void {
-    this.closeModal();
   }
 }

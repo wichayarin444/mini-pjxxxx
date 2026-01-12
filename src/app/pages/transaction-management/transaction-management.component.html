@@ -33,7 +33,7 @@
     </div>
     
     <dx-data-grid 
-      [dataSource]="transactions()" 
+      [dataSource]="transactions$ | async" 
       [showBorders]="true" 
       [columnAutoWidth]="true"
       [rowAlternationEnabled]="true">
@@ -65,8 +65,8 @@
 
   <!-- Modal -->
   <dx-popup
-    *ngIf="isBrowser()"
-    [visible]="showModal()"
+    *ngIf="isBrowser$ | async"
+    [visible]="(showModal$ | async)!"
     [title]="'New Transaction'"
     [showTitle]="true"
     [dragEnabled]="false"
@@ -80,7 +80,7 @@
         <div class="form-row">
             <div class="field">
                 <label>Fund Code</label>
-                <dx-select-box formControlName="fundCode" [items]="fundList()" displayExpr="fundCode" valueExpr="fundCode" placeholder="Select Fund"></dx-select-box>
+                <dx-select-box formControlName="fundCode" [items]="(fundList$ | async) || []" displayExpr="fundCode" valueExpr="fundCode" placeholder="Select Fund"></dx-select-box>
             </div>
             <div class="field">
                 <label>Transaction Type</label>
@@ -88,53 +88,53 @@
             </div>
         </div>
 
-        <div class="form-row" *ngIf="addForm.value.type === 'Buy'">
-            <div class="field">
-                <label>Amount</label>
-                <dx-number-box formControlName="amount" format="#,##0.00" [min]="0"></dx-number-box>
-            </div>
-            <div class="field">
-                <label>Units (Calculated)</label>
-                <dx-number-box [value]="calculations.units" format="#,##0.0000" [readOnly]="true"></dx-number-box>
-            </div>
-            <div class="field">
-                <label>Net (Calculated)</label>
-                <dx-number-box [value]="calculations.net" format="#,##0.00" [readOnly]="true"></dx-number-box>
-            </div>
-        </div>
+        <!-- Use ng-container to subscribe to calculations$ -->
+        <ng-container *ngIf="calculations$ | async as calc">
+          <div class="form-row" *ngIf="addForm.value.type === 'Buy'">
+              <div class="field">
+                  <label>Amount</label>
+                  <dx-number-box formControlName="amount" format="#,##0.00" [min]="0"></dx-number-box>
+              </div>
+              <div class="field">
+                  <label>Units (Calculated)</label>
+                  <dx-number-box [value]="calc.units" format="#,##0.0000" [readOnly]="true"></dx-number-box>
+              </div>
+              <div class="field">
+                  <label>Fee</label>
+                  <dx-number-box [value]="calc.fee" format="#,##0.00" [readOnly]="true"></dx-number-box>
+              </div>
+              <div class="field">
+                  <label>Net Amount</label>
+                  <dx-number-box [value]="calc.net" format="#,##0.00" [readOnly]="true"></dx-number-box>
+              </div>
+          </div>
 
-        <div class="form-row" *ngIf="addForm.value.type === 'Sell'">
-            <div class="field">
-                 <label>Amount (Gross)</label>
-                 <dx-number-box [value]="calculations.amount" format="#,##0.00" [readOnly]="true"></dx-number-box>
-            </div>
-            <div class="field">
-                 <label>Units</label>
-                 <dx-number-box formControlName="units" format="#,##0.0000" [min]="0"></dx-number-box>
-            </div>
-            <div class="field">
-                 <label>Net (Calculated)</label>
-                 <dx-number-box [value]="calculations.net" format="#,##0.00" [readOnly]="true"></dx-number-box>
-            </div>
-        </div>
+          <div class="form-row" *ngIf="addForm.value.type === 'Sell'">
+              <div class="field">
+                  <label>Units</label>
+                  <dx-number-box formControlName="units" format="#,##0.0000" [min]="0"></dx-number-box>
+              </div>
+              <div class="field">
+                  <label>Amount (Gross)</label>
+                  <dx-number-box [value]="calc.amount" format="#,##0.00" [readOnly]="true"></dx-number-box>
+              </div>
+              <div class="field">
+                  <label>Fee</label>
+                  <dx-number-box [value]="calc.fee" format="#,##0.00" [readOnly]="true"></dx-number-box>
+              </div>
+              <div class="field">
+                  <label>Net Amount</label>
+                  <dx-number-box [value]="calc.net" format="#,##0.00" [readOnly]="true"></dx-number-box>
+              </div>
+          </div>
 
-        <div class="form-row">
-            <div class="field">
-                <label>Current NAV</label>
-                <dx-number-box [value]="calculations.nav" format="#,##0.0000" [readOnly]="true"></dx-number-box>
-            </div>
-            <div class="field">
-                <label>Transaction Fee</label>
-                <dx-number-box [value]="calculations.fee" format="#,##0.00" [readOnly]="true"></dx-number-box>
-            </div>
-        </div>
-
-        <div class="popup-footer">
-          <dx-button text="Cancel" stylingMode="outlined" (onClick)="closeModal()"></dx-button>
-          <dx-button text="Save Transaction" type="success" stylingMode="contained" (onClick)="save()" 
-            [disabled]="addForm.invalid || (addForm.value.type === 'Buy' && calculations.amount <= 0) || (addForm.value.type === 'Sell' && calculations.units <= 0)">
-          </dx-button>
-        </div>
+          <div class="popup-footer">
+            <dx-button text="Cancel" stylingMode="outlined" (onClick)="closeModal()"></dx-button>
+            <dx-button text="Save Transaction" type="success" stylingMode="contained" (onClick)="save()" 
+              [disabled]="addForm.invalid || (addForm.value.type === 'Buy' && calc.amount <= 0) || (addForm.value.type === 'Sell' && calc.units <= 0)">
+            </dx-button>
+          </div>
+        </ng-container>
       </form>
     </div>
   </dx-popup>

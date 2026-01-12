@@ -1,9 +1,11 @@
-import { Component, computed, signal, effect, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { FundService } from '../../services/fund.service';
+import { Fund } from '../../models/fund.model';
 import { TransactionService } from '../../services/transaction.service';
-import { TransactionType } from '../../models/transaction.model';
+import { Transaction, TransactionType } from '../../models/transaction.model';
+import { BehaviorSubject, combineLatest, map, startWith, Observable } from 'rxjs';
 import {
   DxDataGridModule,
   DxButtonModule,
@@ -40,16 +42,26 @@ import {
 export class TransactionManagementComponent {
   searchForm!: FormGroup;
   addForm!: FormGroup;
-  showModal = signal(false);
-  editingId = signal<string | null>(null);
-  isBrowser = signal(false);
+  showModal$ = new BehaviorSubject<boolean>(false);
+  editingId$ = new BehaviorSubject<string | null>(null);
+  isBrowser$ = new BehaviorSubject<boolean>(false);
 
-  searchCriteria = signal({
+  searchCriteria$ = new BehaviorSubject({
     fundCode: '',
     type: '',
     startDate: '',
     endDate: ''
   });
+
+  readonly fundList$: Observable<Fund[]>;
+  readonly transactions$: Observable<Transaction[]>;
+  readonly calculations$: Observable<{
+    nav: number;
+    fee: number;
+    net: number;
+    units: number;
+    amount: number;
+  }>;
 
   constructor(
     private funds: FundService,
@@ -57,7 +69,7 @@ export class TransactionManagementComponent {
     private fb: FormBuilder,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
-    this.isBrowser.set(isPlatformBrowser(this.platformId));
+    this.isBrowser$.next(isPlatformBrowser(this.platformId));
 
     this.searchForm = this.fb.group({
       fundCode: [''],
@@ -76,44 +88,75 @@ export class TransactionManagementComponent {
       net: [{ value: 0, disabled: true }]
     });
 
-    // React to form changes for calculations
-    this.addForm.valueChanges.subscribe(val => {
-      this.calculate(val);
-    });
+    this.fundList$ = this.funds.funds$;
+
+    this.transactions$ = combineLatest([
+      this.tx.transactions$,
+      this.searchCriteria$
+    ]).pipe(
+      map(([list, s]) => {
+        let filtered = list;
+        // Filter
+        if (s.fundCode) {
+          filtered = filtered.filter(t => t.fundCode.toLowerCase().includes(s.fundCode.toLowerCase()));
+        }
+        if (s.type) {
+          filtered = filtered.filter(t => t.type === s.type);
+        }
+        if (s.startDate) {
+          filtered = filtered.filter(t => new Date(t.timestamp) >= new Date(s.startDate));
+        }
+        if (s.endDate) {
+          filtered = filtered.filter(t => new Date(t.timestamp) <= new Date(s.endDate));
+        }
+  
+        // Sort by Timestamp Descending
+        return filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      })
+    );
+
+    this.calculations$ = combineLatest([
+      this.addForm.valueChanges.pipe(startWith(null)), // Trigger on form change
+      this.funds.funds$
+    ]).pipe(
+      map(([_, funds]) => {
+        const form = this.addForm.getRawValue(); // use getRawValue to include disabled fields
+        const fund = funds.find(f => f.fundCode === form.fundCode);
+        
+        if (!fund) return { nav: 0, fee: 0, net: 0, units: 0, amount: 0 };
+  
+        let nav = fund.nav;
+        let fee = 0;
+        let net = 0;
+        let units = 0;
+        let amount = 0;
+  
+        if (form.type === 'Buy') {
+          amount = Number(form.amount || 0);
+          fee = amount * (fund.frontEndFee / 100);
+          net = amount - fee;
+          units = net / nav;
+        } else {
+          units = Number(form.units || 0);
+          const gross = units * nav;
+          fee = gross * (fund.backEndFee / 100);
+          net = gross - fee;
+          amount = gross;
+        }
+  
+        return { nav, fee, net, units, amount };
+      })
+    );
   }
 
-  readonly fundList = computed(() => this.funds.funds());
-
-  readonly transactions = computed(() => {
-    let list = this.tx.transactions();
-    const s = this.searchCriteria();
-
-    // Filter
-    if (s.fundCode) {
-      list = list.filter(t => t.fundCode.toLowerCase().includes(s.fundCode.toLowerCase()));
-    }
-    if (s.type) {
-      list = list.filter(t => t.type === s.type);
-    }
-    if (s.startDate) {
-      list = list.filter(t => new Date(t.timestamp) >= new Date(s.startDate));
-    }
-    if (s.endDate) {
-      list = list.filter(t => new Date(t.timestamp) <= new Date(s.endDate));
-    }
-
-    // Sort by Timestamp Descending
-    return list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  });
-
   onSearch(): void {
-    this.searchCriteria.set(this.searchForm.value);
+    this.searchCriteria$.next(this.searchForm.value);
   }
 
   openModal(transaction?: any): void {
-    this.showModal.set(true);
+    this.showModal$.next(true);
     if (transaction) {
-      this.editingId.set(transaction.id);
+      this.editingId$.next(transaction.id);
       this.addForm.patchValue({
         fundCode: transaction.fundCode,
         type: transaction.type,
@@ -123,10 +166,8 @@ export class TransactionManagementComponent {
         fee: transaction.fee,
         net: transaction.net
       });
-      // Force recalculate or set manual override if needed, 
-      // but patchValue should trigger valueChanges if emitEvent is true (default).
     } else {
-      this.editingId.set(null);
+      this.editingId$.next(null);
       this.addForm.reset({
         fundCode: '',
         type: 'Buy',
@@ -140,85 +181,36 @@ export class TransactionManagementComponent {
   }
 
   closeModal(): void {
-    this.showModal.set(false);
-    this.editingId.set(null);
-  }
-
-  calculate(val: any): void {
-    if (!val.fundCode) return;
-
-    const fund = this.fundList().find(f => f.fundCode === val.fundCode);
-    if (!fund) return;
-
-    const nav = fund.nav;
-    // We don't emit event to avoid infinite loop, or use distinctUntilChanged in a real app
-    // Here we just set values if they differ to avoid loop issues, or just update displayed values manually
-    // For simplicity, we'll update the control values but with emitEvent: false where possible or careful management.
-
-    // However, we are inside valueChanges. To avoid loop, we should only set fields that are calculated.
-    // Better approach: Separate input fields from calculated display fields in UI or use a method that doesn't trigger loop.
-
-    // Actually, let's just calculate derived values for display / final submission
-    // and store them in separate signals or just properties, OR update form controls with emitEvent: false.
-  }
-
-  // Helper to get current fund details
-  get currentFund() {
-    const code = this.addForm.get('fundCode')?.value;
-    return this.fundList().find(f => f.fundCode === code);
-  }
-
-  // Derived calculations for display
-  get calculations() {
-    const form = this.addForm.getRawValue(); // use getRawValue to include disabled fields
-    const fund = this.currentFund;
-    if (!fund) return { nav: 0, fee: 0, net: 0, units: 0, amount: 0 };
-
-    let nav = fund.nav;
-    let fee = 0;
-    let net = 0;
-    let units = 0;
-    let amount = 0;
-
-    if (form.type === 'Buy') {
-      amount = Number(form.amount || 0);
-      fee = amount * (fund.frontEndFee / 100);
-      net = amount - fee;
-      units = net / nav;
-    } else {
-      units = Number(form.units || 0);
-      const gross = units * nav;
-      fee = gross * (fund.backEndFee / 100);
-      net = gross - fee;
-      amount = gross; // Or should this be displayed differently? "Amount" usually implies money involved. 
-      // For Sell, user gets 'Net'. Gross is intermediate.
-    }
-
-    return { nav, fee, net, units, amount };
+    this.showModal$.next(false);
+    this.editingId$.next(null);
   }
 
   save(): void {
     if (this.addForm.invalid) return;
-    const form = this.addForm.getRawValue();
-    const calc = this.calculations;
+    
+    // Subscribe once to get current calculation
+    // Since calculations$ is derived from form state, it should be synchronous enough if we take(1)
+    this.calculations$.subscribe(calc => {
+      const form = this.addForm.getRawValue();
 
-    if (form.type === 'Buy' && calc.amount <= 0) return;
-    if (form.type === 'Sell' && calc.units <= 0) return;
+      if (form.type === 'Buy' && calc.amount <= 0) return;
+      if (form.type === 'Sell' && calc.units <= 0) return;
 
-    const txData = {
-      fundCode: form.fundCode,
-      type: form.type,
-      amount: form.type === 'Buy' ? calc.amount : undefined,
-      units: form.type === 'Buy' ? undefined : calc.units,
-    };
+      const txData = {
+        fundCode: form.fundCode,
+        type: form.type,
+        amount: form.type === 'Buy' ? calc.amount : undefined,
+        units: form.type === 'Buy' ? undefined : calc.units,
+      };
 
-    if (this.editingId()) {
-      this.tx.update(this.editingId()!, txData);
-    } else {
-      this.tx.addTransaction(txData);
-    }
+      if (this.editingId$.value) {
+        this.tx.update(this.editingId$.value, txData);
+      } else {
+        this.tx.addTransaction(txData);
+      }
 
-    this.closeModal();
+      this.closeModal();
+    }).unsubscribe();
   }
 
   remove(id: string): void {
